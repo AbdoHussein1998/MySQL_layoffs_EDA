@@ -1,0 +1,104 @@
+-- SQLBook: Code
+SELECT * FROM layoffs;
+-- SQLBook: Markup
+### Exploring the laid off companies
+-- SQLBook: Code
+select max(percentage_laid_off) as Max_laid_off from layoffs;
+-- SQLBook: Markup
+### Number of companies per industry that likely closed with 100% layoffs
+
+-- SQLBook: Code
+-- number of company that probably closed per industry
+SELECT industry,count(*) as number_of_companies from layoffs
+WHERE percentage_laid_off =1
+GROUP BY industry
+ORDER BY number_of_companies DESC ,industry ASC;
+-- SQLBook: Markup
+####  Top 10 companies with the highest number of employees laid off
+-- SQLBook: Code
+-- THE TOP 10 COMPANY IN THE NUMBER OF EMPLOYEE WHO LAID OFF
+SELECT company,SUM(total_laid_off)AS TOTAL_LAID_OFF  FROM layoffs
+GROUP BY company 
+ORDER BY TOTAL_LAID_OFF DESC
+LIMIT 10;
+-- SQLBook: Markup
+#### Companies with over 85% layoffs
+-- SQLBook: Code
+
+SELECT company, industry,percentage_laid_off FROM layoffs
+WHERE percentage_laid_off>0.85 AND  percentage_laid_off<1;
+
+-- SQLBook: Markup
+#### Number of layoffs by city
+-- SQLBook: Code
+SELECT location , sum(total_laid_off) as "total_laid_off"
+from layoffs
+GROUP BY location
+ORDER BY total_laid_off DESC 
+LIMIT 10;
+-- SQLBook: Markup
+#### Total layoffs per country
+-- SQLBook: Code
+SELECT DISTINCT country,count( DISTINCT company) as total_layoffs from layoffs
+GROUP BY country 
+ORDER BY total_layoffs DESC
+LIMIT 10;
+
+SELECT country , sum(total_laid_off) as "total_laid_off"
+from layoffs
+GROUP BY country
+ORDER BY total_laid_off DESC 
+LIMIT 10;
+
+-- Due to the United States having the highest number of companies in this data, it is likely the country with the most layoffs.
+-- SQLBook: Markup
+#### Layoffs over years
+
+-- SQLBook: Code
+SELECT YEAR(`date`) as year, sum(total_laid_off) FROM layoffs
+GROUP BY year 
+HAVING year is not NULL
+ORDER By year desc;
+
+-- SQLBook: Markup
+#### Layoffs by stage
+-- SQLBook: Code
+SELECT stage , sum(total_laid_off) as "total_laid_off"
+from layoffs
+GROUP BY stage
+ORDER BY total_laid_off DESC 
+LIMIT 10;
+-- SQLBook: Markup
+#### Companies with the highest number of layoffs per year
+-- SQLBook: Code
+----> The ranking filter depends on this outer CTE
+----> The inner CTE is a prerequisite for applying DENSE_RANK to the SUM-based query
+with outer_cte as (      
+with cte_ranking as (SELECT
+company,
+ SUM(`total_laid_off`) as `total_laid_off_inside`,
+ YEAR(`date`) as `year`
+ from layoffs
+ GROUP BY YEAR(`date`),company
+ ORDER BY  `total_laid_off_inside` DESC)
+ SELECT *,DENSE_RANK() OVER(PARTITION BY year ORDER BY `total_laid_off_inside` DESC ) as `rank` FROM cte_ranking
+ ORDER BY total_laid_off_inside DESC
+)SELECT company , total_laid_off_inside as total_laid_off,year FROM outer_cte WHERE `rank` = 1 and `year` is NOT NULL
+ORDER BY `year` DESC;
+
+-- SQLBook: Markup
+#### Layoffs per month
+-- SQLBook: Code
+SELECT MONTHNAME(date) as month_name
+,sum(total_laid_off) as total_laid_off
+FROM layoffs
+GROUP BY month_name
+HAVING month_name is NOT NULL
+ORDER BY total_laid_off desc;
+-- SQLBook: Markup
+# Done 😀
+-- SQLBook: Markup
+<!-- SELECT DISTINCT `date`,sum(total_laid_off) as total_laid_off FROM layoffs
+where date >2022-06-1
+GROUP BY date
+ORDER BY total_laid_off DESC; -->

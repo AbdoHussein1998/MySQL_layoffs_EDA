@@ -1,0 +1,77 @@
+-- SQLBook: Code
+-- Create a new layoffs table to prevent data corruption
+create table layoffs LIKE layoffs_org;
+insert into layoffs select * from layoffs_org;
+
+-- SQLBook: Markup
+#### Addressing duplicate data
+-- SQLBook: Code
+SELECT * , ROW_NUMBER() over(PARTITION BY company, industry, total_laid_off,`date`) as row_num from layoffs;
+SELECT * from (SELECT * , ROW_NUMBER() over(PARTITION BY company, industry, total_laid_off,`date`) as row_num from layoffs) as subquery where row_num>1;
+
+DELETE FROM layoffs where company in 
+(SELECT company from (SELECT company, ROW_NUMBER() over(PARTITION BY company, industry, total_laid_off,date) as row_num from layoffs) as subquery where row_num>1);
+-- SQLBook: Markup
+#### Column correction
+-- SQLBook: Code
+SELECT DISTINCT company FROM layoffs;
+update layoffs
+SET company = TRIM(company)
+-- SQLBook: Code
+SELECT DISTINCT country FROM layoffs;
+UPDATE layoffs 
+SET country = "United States"
+where country LIKE "United States%";
+
+-- SQLBook: Code
+SELECT DISTINCT location from layoffs;
+update layoffs
+SET location = TRIM(location)
+-- SQLBook: Markup
+#### Handling industries not represented in the data
+-- SQLBook: Code
+SELECT DISTINCT industry from layoffs;
+
+SELECT * FROM layoffs where industry = "" or industry IS NULL;
+-- it's existed in other rows
+
+select l1.company,l1.industry,l2.industry from layoffs as l1 JOIN layoffs l2 ON
+l1.company =l2.company 
+where l1.industry = "" and l1.industry !=l2.industry;
+
+UPDATE layoffs as l1 JOIN layoffs l2 ON l1.company =l2.company 
+set l1.industry = l2.industry 
+where l1.industry = "" and l1.industry !=l2.industry;
+-- SQLBook: Markup
+#### Dealing with date and time column
+-- SQLBook: Code
+SELECT date from layoffs;
+UPDATE layoffs 
+set `date` = STR_TO_DATE(`date`,'%m/%d/%Y')
+
+ALTER Table layoffs
+MODIFY COLUMN date DATE;
+
+-- SQLBook: Markup
+#### Addressing th null values
+-- SQLBook: Code
+SELECT *
+FROM layoffs
+WHERE total_laid_off IS NULL;
+
+SELECT *
+FROM layoffs
+WHERE total_laid_off IS NULL
+AND percentage_laid_off IS NULL;
+
+DELETE from layoffs
+where total_laid_off is NULL and percentage_laid_off is NULL;
+
+
+-- SQLBook: Markup
+#### Changing some columns data type
+-- SQLBook: Code
+ALTER TABLE layoffs
+MODIFY percentage_laid_off FLOAT;
+-- SQLBook: Markup
+# Done😀
